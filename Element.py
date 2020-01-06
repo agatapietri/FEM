@@ -113,30 +113,82 @@ class Element:
 
     def H_matrix_BC(self, universal_element, alpha):
 
-        integral_points_for_side = np.zeros(shape=(4, 2))
-        integral_points_for_side[0, 0] = IntegralPoint(-1 / math.sqrt(3), -1, 1, 1)
-        integral_points_for_side[0, 1] = IntegralPoint(1 / math.sqrt(3), -1, 1, 1)
+        integral_points_for_side = []
+        for i in range(4):
+            integral_points_for_side.append([1,1])
+        integral_points_for_side[0][0] = IntegralPoint(-1 / math.sqrt(3), -1, 1, 1)
+        integral_points_for_side[0][1] = IntegralPoint(1 / math.sqrt(3), -1, 1, 1)
 
-        integral_points_for_side[1, 0] = IntegralPoint(1, -1 / math.sqrt(3), 1, 1)
-        integral_points_for_side[1, 1] = IntegralPoint(1, 1 / math.sqrt(3), 1, 1)
+        integral_points_for_side[1][0] = IntegralPoint(1, -1 / math.sqrt(3), 1, 1)
+        integral_points_for_side[1][1] = IntegralPoint(1, 1 / math.sqrt(3), 1, 1)
 
-        integral_points_for_side[2, 0] = IntegralPoint(1 / math.sqrt(3), 1, 1, 1)
-        integral_points_for_side[2, 1] = IntegralPoint(-1 / math.sqrt(3), 1, 1, 1)
+        integral_points_for_side[2][0] = IntegralPoint(1 / math.sqrt(3), 1, 1, 1)
+        integral_points_for_side[2][1] = IntegralPoint(-1 / math.sqrt(3), 1, 1, 1)
 
-        integral_points_for_side[3, 0] = IntegralPoint(-1, 1 / math.sqrt(3), 1, 1)
-        integral_points_for_side[3, 1] = IntegralPoint(-1, -1 / math.sqrt(3), 1, 1)
+        integral_points_for_side[3][0] = IntegralPoint(-1, 1 / math.sqrt(3), 1, 1)
+        integral_points_for_side[3][1] = IntegralPoint(-1, -1 / math.sqrt(3), 1, 1)
 
+        H_BC_matrix = np.zeros(shape=(4,4))
         for i in range(4):
             edge_with_boundary_cond = None
 
             if self.nodes[i].boundary_condition and self.nodes[(i+1) % 4]:
                 edge_with_boundary_cond = (self.nodes[i], self.nodes[(i+1) % 4])
-                N_vector_for_iteg_point = universal_element.N_vector(integral_points_for_side[i][0])
-                N_vector_for_iteg_point_transp = np.transpose(N_vector_for_iteg_point)
-                N_matrix_for_integ_point = np.dot(N_vector_for_iteg_point, N_vector_for_iteg_point_transp)
+                N_vector_for_iteg_point1 = universal_element.N_vector(integral_points_for_side[i][0])
+                N_vector_for_iteg_point_transp1 = np.transpose(N_vector_for_iteg_point1)
+                N_matrix_for_integ_point1 = np.dot(N_vector_for_iteg_point1, N_vector_for_iteg_point_transp1)
+                N_vector_for_iteg_point2 = universal_element.N_vector(integral_points_for_side[i][1])
+                N_vector_for_iteg_point_transp2 = np.transpose(N_vector_for_iteg_point2)
+                N_matrix_for_integ_point2 = np.dot(N_vector_for_iteg_point2, N_vector_for_iteg_point_transp2)
+                distance_between_nodes = math.sqrt((self.nodes[i].x - self.nodes[(i+1) % 4].x) ** 2
+                                                   + (self.nodes[i].y - self.nodes[(i+1) % 4].y) ** 2)
+                jacobian1D = distance_between_nodes * 0.5
+                H_BC_matrix_for_side = N_matrix_for_integ_point1 * jacobian1D + N_matrix_for_integ_point2 * jacobian1D
+                H_BC_matrix_for_side *= alpha
             else:
                 continue
 
+            H_BC_matrix += H_BC_matrix_for_side
+
+        return H_BC_matrix
+
+    def P_vector (self, universal_element, alpha, temp):
+        integral_points_for_side = []
+        for i in range(4):
+            integral_points_for_side.append([1, 1])
+        integral_points_for_side[0][0] = IntegralPoint(-1 / math.sqrt(3), -1, 1, 1)
+        integral_points_for_side[0][1] = IntegralPoint(1 / math.sqrt(3), -1, 1, 1)
+
+        integral_points_for_side[1][0] = IntegralPoint(1, -1 / math.sqrt(3), 1, 1)
+        integral_points_for_side[1][1] = IntegralPoint(1, 1 / math.sqrt(3), 1, 1)
+
+        integral_points_for_side[2][0] = IntegralPoint(1 / math.sqrt(3), 1, 1, 1)
+        integral_points_for_side[2][1] = IntegralPoint(-1 / math.sqrt(3), 1, 1, 1)
+
+        integral_points_for_side[3][0] = IntegralPoint(-1, 1 / math.sqrt(3), 1, 1)
+        integral_points_for_side[3][1] = IntegralPoint(-1, -1 / math.sqrt(3), 1, 1)
+        P_vector = np.zeros(shape=(4, 1))
+
+        for i in range(4):
+            edge_with_boundary_cond = None
+
+            if self.nodes[i].boundary_condition and self.nodes[(i + 1) % 4]:
+                edge_with_boundary_cond = (self.nodes[i], self.nodes[(i + 1) % 4])
+                N_vector_for_iteg_point1 = universal_element.N_vector(integral_points_for_side[i][0])
+
+                N_vector_for_iteg_point2 = universal_element.N_vector(integral_points_for_side[i][1])
+
+                distance_between_nodes = math.sqrt((self.nodes[i].x - self.nodes[(i + 1) % 4].x) ** 2
+                                                   + (self.nodes[i].y - self.nodes[(i + 1) % 4].y) ** 2)
+                jacobian1D = distance_between_nodes * 0.5
+                P_vector_for_side = N_vector_for_iteg_point1 * jacobian1D + N_vector_for_iteg_point1 * jacobian1D
+                P_vector_for_side *= alpha * temp
+            else:
+                continue
+
+            P_vector += P_vector_for_side
+
+        return -P_vector
 
 
 
@@ -152,6 +204,11 @@ if __name__ == "__main__":
     test_element = Element([node1, node2, node3, node4], 0)
     h_matrix_in_element = test_element.H_matrix(UniversalElement( ), 30)
     print(h_matrix_in_element)
+    h_bc_matrix_in_element = test_element.H_matrix_BC(UniversalElement( ), 25)
+    print(h_bc_matrix_in_element)
     c_matrix_in_element = test_element.C_matrix(UniversalElement( ), 7800, 700)
     print(c_matrix_in_element)
+    p_vector_in_element = test_element.P_vector(UniversalElement(),25, 1000)
+    print(p_vector_in_element)
+
 

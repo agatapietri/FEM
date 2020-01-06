@@ -1,6 +1,8 @@
 from Element import Element
 from Node import Node
 from numpy import arange
+from UniversalElement import UniversalElement
+import numpy as np
 class Grid:
     def __init__(self, H, W, nH, nW):
         self.nodes = []
@@ -36,8 +38,42 @@ class Grid:
                                       self.nodes[right_top], self.nodes[left_top]]
 
                 new_element = Element(element_nodes_tab, element_id)
+                self.elements.append(new_element)
                 element_id += 1
 
+    def H_matrix_global(self, universal_element, conductivity):
+
+        global_h = np.zeros(shape=(self.nN, self.nN))
+        for i in range (self.nE):
+            element = self.elements[i]
+            H_local = universal_element.H_matrix(universal_element, conductivity)
+            element_index = [element[i].id for i in range(4)]
+
+            for y in range(4):
+                for x in range(4):
+                    global_h[element_index[x], element_index[y]] += H_local[x, y]
+
+        return global_h
+
+    def _Cmatrix_global(self,  universal_element, density, specific_heat):
+
+        global_c = np.zeros(shape=(self.nN, self.nN))
+
+        for i in range(self.nE):
+            element = self.elements[i]
+            C_local = universal_element.H_matrix(universal_element, density, specific_heat)
+            element_index = [element[i].id for i in range(4)]
+
+            for y in range(4):
+                for x in range(4):
+                    global_c[element_index[x], element_index[y]] += C_local[x, y]
+
+        return global_c
+
+
+
+
 if __name__ == "__main__":
-    test = Grid(3, 3, 4, 4)
-    print(test)
+    test = Grid(0.1, 0.1, 4, 4)
+    H_global_test = test.H_matrix_global(UniversalElement( ), 30)
+    print(H_global_test)

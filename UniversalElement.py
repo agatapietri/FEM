@@ -41,9 +41,9 @@ class UniversalElement:
             self.N_ksi_matrix[i, 3] = ShapeFunctions.fourth_shape_function_dksi(integral_point)
             i += 1
 
-    def N_vector(ksi: float, eta: float):
+    def N_vector(self, integral_point: IntegralPoint):
         N_vector = np.zeros(shape=(4,1))
-        integral_point = IntegralPoint(ksi, eta)
+
         N_vector[0, 0] = ShapeFunctions.first_shape_function(integral_point)
         N_vector[1, 0] = ShapeFunctions.second_shape_function(integral_point)
         N_vector[2, 0] = ShapeFunctions.third_shape_function(integral_point)
