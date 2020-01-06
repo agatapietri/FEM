@@ -44,36 +44,98 @@ class Grid:
     def H_matrix_global(self, universal_element, conductivity):
 
         global_h = np.zeros(shape=(self.nN, self.nN))
-        for i in range (self.nE):
+        for i in range(self.nE):
             element = self.elements[i]
-            H_local = universal_element.H_matrix(universal_element, conductivity)
-            element_index = [element[i].id for i in range(4)]
+            H_local = element.H_matrix(universal_element, conductivity)
+            element_index = [element.nodes[i].id for i in range(4)]
 
             for y in range(4):
                 for x in range(4):
-                    global_h[element_index[x], element_index[y]] += H_local[x, y]
+                    global_h[element_index[x] - 1, element_index[y] - 1] += H_local[x, y]
 
         return global_h
 
-    def _Cmatrix_global(self,  universal_element, density, specific_heat):
+    def C_matrix_global(self,  universal_element, density, specific_heat):
 
         global_c = np.zeros(shape=(self.nN, self.nN))
 
         for i in range(self.nE):
             element = self.elements[i]
-            C_local = universal_element.H_matrix(universal_element, density, specific_heat)
-            element_index = [element[i].id for i in range(4)]
+            C_local = element.C_matrix(universal_element, density, specific_heat)
+            element_index = [element.nodes[i].id for i in range(4)]
 
             for y in range(4):
                 for x in range(4):
-                    global_c[element_index[x], element_index[y]] += C_local[x, y]
+                    global_c[element_index[x] - 1, element_index[y] - 1] += C_local[x, y]
 
         return global_c
 
+    def H_BC_global(self,universal_element, alpha):
+        global_H_BC = np.zeros(shape=(self.nN, self.nN))
 
+        for i in range(self.nE):
+            element = self.elements[i]
+            H_BC_local = element.H_matrix_BC(universal_element, alpha)
+            element_index = [element.nodes[i].id for i in range(4)]
+
+            for y in range(4):
+                for x in range(4):
+                    global_H_BC[element_index[x] - 1, element_index[y] - 1] += H_BC_local[x, y]
+
+        return global_H_BC
+
+    def P_vector_global(self, universal_element, alpha, temp):
+        global_P_vector = np.zeros(shape=(self.nN, 1))
+
+        for i in range(self.nE):
+            element = self.elements[i]
+            P_vector_local = element.P_vector(universal_element, alpha, temp)
+            element_index = [element.nodes[i].id for i in range(4)]
+            for x in range(4):
+                global_P_vector[element_index[x] - 1, 0] += P_vector_local[x, 0]
+
+        return global_P_vector
+
+    def simulation(self, initial_temp, simulation_time, sim_time_step, universal_element, alpha, conductivity, density, specific_heat):
+        t0_Vector = [initial_temp for i in range(self.nN)]
+        t0_Vector = np.asanyarray([t0_Vector]).reshape((self.nN,1))
+        step_amount = (int)(simulation_time/sim_time_step)
+        step_in_time = [(step + 1) * sim_time_step for step in range(step_amount)]
+
+        for actual_time in step_in_time:
+
+            global_h = self.H_matrix_global(universal_element, conductivity)
+            global_c = self.C_matrix_global(universal_element, density, specific_heat)
+            p_vector_global = self.P_vector_global(universal_element, alpha, 1200)
+            global_h_bc = self.H_BC_global(universal_element, alpha)
+            global_h += global_h_bc
+            global_c *= 1/sim_time_step
+            p_vector_global *= -1
+            p_vector_global += np.dot(global_c, t0_Vector)
+            global_h += global_c
+
+            t1 = np.linalg.solve(global_h, p_vector_global)
+            t1_max = np.amax(t1)
+            t1_min = np.amin(t1)
+
+            print("Step: = ", actual_time, " min: = ", t1_min, " max: = ", t1_max)
+            t0_Vector = t1
+
+        return t0_Vector
 
 
 if __name__ == "__main__":
     test = Grid(0.1, 0.1, 4, 4)
     H_global_test = test.H_matrix_global(UniversalElement( ), 30)
     print(H_global_test)
+    C_global_test = test.C_matrix_global(UniversalElement( ), 7800, 700)
+    print(C_global_test)
+    print("------------------------------------------------------")
+    H_BC_global_test = test.H_BC_global(UniversalElement( ),25)
+    print(H_global_test)
+    print("------------------------------------------------------")
+    P_vector_test = test.P_vector_global(UniversalElement( ), 25, 1000)
+    print(P_vector_test)
+    print("------------------------------------------------------")
+    simulation_test = test.simulation(100, 500, 50, UniversalElement(), 300, 25, 7800, 700 )
+    print(simulation_test)
