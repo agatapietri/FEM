@@ -132,7 +132,7 @@ class Element:
         for i in range(4):
             edge_with_boundary_cond = None
 
-            if self.nodes[i].boundary_condition and self.nodes[(i+1) % 4]:
+            if self.nodes[i].boundary_condition and self.nodes[(i+1) % 4].boundary_condition:
                 edge_with_boundary_cond = (self.nodes[i], self.nodes[(i+1) % 4])
                 N_vector_for_iteg_point1 = universal_element.N_vector(integral_points_for_side[i][0])
                 N_vector_for_iteg_point_transp1 = np.transpose(N_vector_for_iteg_point1)
@@ -172,7 +172,7 @@ class Element:
         for i in range(4):
             edge_with_boundary_cond = None
 
-            if self.nodes[i].boundary_condition and self.nodes[(i + 1) % 4]:
+            if self.nodes[i].boundary_condition and self.nodes[(i + 1) % 4].boundary_condition:
                 edge_with_boundary_cond = (self.nodes[i], self.nodes[(i + 1) % 4])
                 N_vector_for_iteg_point1 = universal_element.N_vector(integral_points_for_side[i][0])
 
