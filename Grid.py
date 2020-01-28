@@ -129,7 +129,7 @@ class Grid:
 
 if __name__ == "__main__":
 
-    with open('MES.json', 'r') as data_file:
+    with open('MES1.json', 'r') as data_file:
         mes = json.load(data_file)
     test = Grid(mes["H"], mes["W"], mes["N_H"], mes["N_W"])
     P_vector_glogal = test.P_vector_global(UniversalElement(), 300, 1200)
